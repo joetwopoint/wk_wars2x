@@ -1882,17 +1882,17 @@ CreateThread(function()
 	Wait(100)
 
 	while true do
-		local vehicle = cache.vehicle
-		local vehicleClass = vehicle and GetVehicleClass(vehicle) == 18 or false
-
-		if vehicle and vehicleClass then
+		-- Use the shared player helper instead of touching cache directly
+		if PLY:VehicleStateValid() then
 			RADAR:RunDisplayValidationCheck()
 			Wait(500)
 		else
+			-- Player is not in a valid emergency vehicle, make sure the UI is hidden
 			if RADAR:GetDisplayState() and not RADAR:GetDisplayHidden() then
 				RADAR:SetDisplayHidden(true)
 				SendNUIMessage({ _type = "setRadarDisplayState", state = false })
 			end
+
 			Wait(1000)
 		end
 	end
@@ -1920,3 +1920,18 @@ CreateThread(function()
 		Wait(3000)
 	end
 end)
+
+-- Manual failsafe to hide radar & plate reader UI if it gets stuck on screen
+RegisterCommand("radar_fixui", function()
+	-- Hide radar
+	RADAR:SetDisplayHidden(true)
+	SendNUIMessage({ _type = "setRadarDisplayState", state = false })
+
+	-- Hide plate reader if present
+	if READER and READER.GetDisplayState and READER:GetDisplayState() then
+		READER:SetDisplayHidden(true)
+		SendNUIMessage({ _type = "setReaderDisplayState", state = false })
+	end
+end, false)
+
+

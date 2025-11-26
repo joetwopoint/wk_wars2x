@@ -441,10 +441,8 @@ end
 
 CreateThread(function()
 	while true do
-		local vehicle = cache.vehicle
-		local vehicleClass = vehicle and GetVehicleClass(vehicle) == 18 or false
-
-		if vehicle and vehicleClass then
+		-- Use the shared player helper instead of touching cache directly
+		if PLY:VehicleStateValid() then
 			if READER:CanPerformMainTask() then
 				READER:Main()
 			end
@@ -452,10 +450,12 @@ CreateThread(function()
 			READER:RunDisplayValidationCheck()
 			Wait(500)
 		else
+			-- Not in a valid emergency vehicle, hide the plate reader UI
 			if READER:GetDisplayState() and not READER:GetDisplayHidden() then
 				READER:SetDisplayHidden(true)
 				SendNUIMessage({ _type = "setReaderDisplayState", state = false })
 			end
+
 			Wait(1000)
 		end
 	end
