@@ -2,13 +2,11 @@
 
 	Wraith ARS 2X
 	Created by WolfKnight
-
-	For discussions, information on future updates, and more, join
-	my Discord: https://discord.gg/fD4e6WD
+	Modified/Maintained by Sonoran Software
 
 	MIT License
 
-	Copyright (c) 2020-2021 WolfKnight
+	Copyright (c) 2020 WolfKnight
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -30,47 +28,51 @@
 
 ---------------------------------------------------------------------------------------]]--
 
--- Define the FX Server version and game type
-fx_version "cerulean"
-game "gta5"
+function TogglePlateLock(clientId, cam, beepAudio, boloAudio)
+	TriggerClientEvent('wk:togglePlateLock', clientId, cam, beepAudio, boloAudio)
+end
 
--- Define the resource metadata
-name "Wraith ARS 2X"
-description "Police radar and plate reader system for FiveM"
-author "WolfKnight"
-version "1.3.9-sonoran"
+function getVersionData()
+	return GetResourceMetadata(GetCurrentResourceName(), 'version')
+end
 
--- Include the files
-files {
-	"nui/radar.html",
-	"nui/radar.css",
-	"nui/radar.js",
-	"nui/images/*.png",
-	"nui/images/plates/*.png",
-	"nui/fonts/*.ttf",
-	"nui/fonts/Segment7Standard.otf",
-	"nui/sounds/*.ogg"
-}
+ActiveRadars = {}
 
--- Set the NUI page
-ui_page "nui/radar.html"
+RegisterNetEvent('wk_wars2x:ActiveRadarsTable', function(id, state)
+	if state then
+		table.insert(ActiveRadars, id)
+	else
+		for i = #ActiveRadars, 1, -1 do
+			if ActiveRadars[i] == id then
+				table.remove(ActiveRadars, i)
+			end
+		end
+	end
+end)
 
--- Run the server scripts
-server_scripts {
-	"sv_version_check.lua",
-	"sv_exports.lua",
-	"sv_sync.lua"
-}
-server_export "TogglePlateLock"
-server_export "getVersionData"
+RegisterNetEvent('wk_wars2x:GetActiveRadarsTable', function()
+	local src = source
+	if #ActiveRadars == 0 then
+		TriggerClientEvent('wk_wars2x:ReturnActiveRadarTable', src, {})
+	else
+		TriggerClientEvent('wk_wars2x:ReturnActiveRadarTable', src, ActiveRadars)
+	end
+end)
 
--- Run the client scripts
-client_scripts {
-	"config.lua",
-	"cl_utils.lua",
-	"cl_player.lua",
-	"cl_radar.lua",
-	"TwoPoint_DetectorExport.lua",
-	"cl_plate_reader.lua",
-	"cl_sync.lua"
-}
+JammedPlates = {}
+
+RegisterNetEvent('wk_wars2x:SendJammedPlate', function(plate)
+	if JammedPlates[plate] then
+		JammedPlates[plate] = nil
+	else
+		JammedPlates[plate] = true
+	end
+	TriggerClientEvent('wk_wars2x:SendJammedListToClient', -1, JammedPlates)
+end)
+
+Citizen.CreateThread(function()
+	while #JammedPlates > 0 do
+		Citizen.Wait(5000)
+		TriggerClientEvent('wk_wars2x:SendJammedListToClient', -1, JammedPlates)
+	end
+end)
